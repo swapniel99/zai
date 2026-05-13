@@ -42,8 +42,8 @@ Once your reasoning block is complete, you must invoke the provided native tools
 
 <fallback_handling>
 - Reasoning Type: "error_handling"
-- If [SEARCH_WEB] yields no specific events for the timeframe, state: "No major events found, falling back to seasonal highlights."
-- If [SEARCH_REDDIT] yields no results, state: "No specific Reddit tips found, relying on general consensus."
+- If the `search_web` tool yields no specific events for the timeframe, state: "No major events found, falling back to seasonal highlights."
+- If the `search_reddit` tool yields no results, state: "No specific Reddit tips found, relying on general consensus."
 </fallback_handling>
 ```
 
