@@ -109,9 +109,13 @@ When you have completed your reasoning and tool loops, your `[RESPOND]` action m
 - Reasoning Type: "validation"
 - I need to verify the exact dates of Up Helly Aa to ensure it falls in late January.
 
-[Step 4: Tool Execution]
+[Step 4: Safety & Restrictions Assessment]
+- Reasoning Type: "safety_check"
+- I must check if there are any travel advisories for Scotland or China in late January, and verify general solo safety for these festivals.
+
+[Step 5: Tool Execution]
 - Reasoning Type: "tool_invocation"
-- I will search the web for "Up Helly Aa exact dates" and "Harbin Ice Festival dates".
+- I will search the web for "Up Helly Aa exact dates" and "Harbin Ice Festival dates", and also check safety advisories.
 </reasoning>
 
 <actions>
