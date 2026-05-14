@@ -3,7 +3,7 @@
 ## Phase 1: Foundations ✅
 
 - [x] Write PRD (`docs/PRD.md`)
-- [x] Write system prompt (`docs/draft_prompt.md`)
+- [x] Write system prompt (`prompt.md`)
 - [x] Write architecture document (`docs/architecture.md`)
 
 ## Phase 2: MCP Tool Server ✅

@@ -27,17 +27,15 @@ uv run python travel_agent.py
 
 ## Architecture
 
-**Solo Explorer Agent** — agentic travel planner. Phases 1–3 complete; Phase 4 (frontend) in progress.
+**Solo Explorer Agent** — agentic travel planner. All 4 phases complete.
 
 ### Current state (complete)
 - `mcp_server.py` — `FastMCP` server registering 6 tools. Tool *registration only*; all logic lives in `tools/`.
 - `tools/` — 6 custom Python modules, each mapping to one PRD capability (web search, page reading, Reddit, media, date math, climate).
 - `tests/test_tools.py` — 21 pytest tests with `asyncio_mode=auto`; tests primary paths, fallback chains, and MCP registration.
 - `travel_agent.py` — core agentic loop. Connects to `mcp_server.py` via HTTP (`streamable_http_client`), fetches tool schemas, runs native tool-calling loop (LLM → tools → LLM) via `llm_gatewayV2`. Exposes `run()` (blocking) and `run_stream()` (async generator, SSE events). `MAX_TURNS = 12`.
-- `main.py` — FastAPI. `POST /chat/stream` (SSE), `POST /chat` (JSON fallback), `GET /health`. In-memory sessions keyed by `session_id`.
-
-### Planned (not yet built)
-- Browser frontend — stateless chat UI consuming `/chat/stream` SSE, renders Markdown with embedded images/video.
+- `main.py` — FastAPI on port 8080. `POST /chat/stream` (SSE), `POST /chat` (JSON fallback), `GET /health`, `GET /` (serves UI). In-memory sessions keyed by `session_id`.
+- `static/index.html` — single-file chat UI. Consumes `/chat/stream` SSE; renders Markdown (marked.js) with inline images and YouTube embeds; shows thinking/tool-progress pills in a scrollable status bar.
 
 ### SSE event schema (`POST /chat/stream`)
 Events are `data: <json>\n\n` lines. Frontend must handle all types:
@@ -81,4 +79,4 @@ Parallel tool calls fire all `tool_start` events before any `tool_end` (via `asy
 - `search_reddit` restricted to travel subreddits (`solotravel`, `travel`, `TravelHacks`, etc.)
 - Agent injects `datetime.now()` into system prompt at runtime for temporal grounding
 - Final response must be pure Markdown itinerary — system prompt explicitly blocks `<reasoning>` blocks in the final turn
-- System prompt lives in `docs/draft_prompt.md`; PRD in `docs/PRD.md`; architecture in `docs/architecture.md`
+- System prompt lives in `prompt.md`; PRD in `docs/PRD.md`; architecture in `docs/architecture.md`

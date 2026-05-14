@@ -34,7 +34,7 @@ from mcp.client.streamable_http import streamable_http_client
 
 from client import LLM
 
-_PROMPT_PATH = Path(__file__).parent / "docs" / "draft_prompt.md"
+_PROMPT_PATH = Path(__file__).parent / "prompt.md"
 _MCP_SERVER = Path(__file__).parent / "mcp_server.py"
 MAX_TURNS = 12
 LLM_PROVIDER: str | None = os.getenv("LLM_PROVIDER")  # e.g. "cerebras", "groq", None = auto
