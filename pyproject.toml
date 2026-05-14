@@ -4,4 +4,24 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "beautifulsoup4>=4.14.3",
+    "dateparser>=1.4.0",
+    "ddgs>=9.14.2",
+    "fastapi[standard]>=0.136.1",
+    "fastmcp>=3.2.4",
+    "httpx>=0.28.1",
+    "mcp>=1.27.1",
+    "parsedatetime>=2.6",
+    "readability-lxml>=0.8.4.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
