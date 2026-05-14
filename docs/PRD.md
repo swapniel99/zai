@@ -32,6 +32,8 @@ The agent must elegantly handle the following three user entry points:
 * **Critical Safety Focus**: The agent handles the safety aspect with great care. It actively cross-references Reddit, official travel advisories, and travel forums to provide highly accurate safety tips tailored specifically to solo travelers (especially solo female travelers). It prominently highlights high-risk areas, local scams, and necessary precautions.
 * **Budget Categorization**: The agent proactively asks for a budget tier (Backpacker, Mid-range, Luxury) to accurately recommend transportation means and accommodations near the suggested events.
 * **Logistics, Visas & Travel Restrictions**: The agent performs basic web searches to notify the user of any visa requirements, active travel restrictions (e.g., advisories, closed borders), or necessary transit passes (e.g., JR Pass) based on their home country and destination.
+* **Local Laws & Substance Use**: The agent proactively checks the legality and limits regarding substance use and possession (including alcohol, vaping, marijuana/cannabis, or other recreational drugs) to ensure the solo traveler does not inadvertently violate strict local regulations.
+* **Nightlife & Evening Activities**: The agent includes well-researched recommendations for local nightlife, specifically tailored to solo travelers seeking safe, highly-rated evening entertainment.
 * **Rich Media Responses**: The agent returns visually rich itineraries by embedding relevant images and videos of the suggested locations and events directly into its output.
 
 ## 4. Agent Persona & Tone
