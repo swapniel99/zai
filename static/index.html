@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zai 🦜 — Solo Travel Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #080c14;
+      --surface:     #0e1420;
+      --card:        #131b2a;
+      --card-hover:  #172033;
+      --border:      rgba(255,255,255,0.07);
+      --border-glow: rgba(228,160,50,0.3);
+      --accent:      #e8a030;
+      --accent2:     #f0c060;
+      --accent-dim:  rgba(232,160,48,0.15);
+      --text:        #e8edf5;
+      --muted:       #6b7a94;
+      --subtle:      #3d4f6b;
+      --user-bg:     linear-gradient(135deg,#1d3a2a,#163222);
+      --user-border: rgba(80,180,100,0.2);
+      --user-text:   #a8d9b0;
+      --error-bg:    rgba(200,60,60,0.12);
+      --error-border:rgba(200,60,60,0.25);
+      --error-text:  #f08888;
+      --r:           14px;
+      --r-sm:        8px;
+    }
+
+    html, body { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 15px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Background texture ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(232,160,48,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(60,120,200,0.04) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 24px;
+      background: rgba(14,20,32,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-wrap {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, #2a1f08, #4a3510);
+      border: 1px solid rgba(232,160,48,0.3);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+    header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+      font-weight: 400;
+    }
+
+    /* ── Messages ── */
+    #messages {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 24px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scroll-behavior: smooth;
+    }
+    #messages::-webkit-scrollbar { width: 4px; }
+    #messages::-webkit-scrollbar-track { background: transparent; }
+    #messages::-webkit-scrollbar-thumb { background: var(--subtle); border-radius: 2px; }
+
+    /* ── Empty state ── */
+    #empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      height: 100%;
+      text-align: center;
+      padding: 40px;
+      pointer-events: none;
+    }
+    .empty-icon {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, #1a2a40, #0e1828);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+    }
+    #empty h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      color: var(--text);
+    }
+    #empty p {
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 360px;
+      line-height: 1.7;
+    }
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 4px;
+      pointer-events: all;
+    }
+    .suggestion {
+      padding: 7px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .suggestion:hover {
+      background: var(--card-hover);
+      border-color: var(--border-glow);
+      color: var(--accent);
+    }
+
+    /* ── Message rows ── */
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 82%;
+      animation: fadeUp 0.3s ease forwards;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .msg.user      { align-self: flex-end; align-items: flex-end; }
+    .msg.assistant { align-self: flex-start; align-items: flex-start; max-width: 88%; }
+    .msg.error     { align-self: flex-start; align-items: flex-start; }
+
+    .msg-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 5px;
+      padding: 0 6px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .msg.user .msg-label { color: rgba(168,217,176,0.5); }
+
+    .msg-bubble {
+      padding: 14px 18px;
+      border-radius: var(--r);
+      line-height: 1.65;
+      word-break: break-word;
+    }
+    .msg.user .msg-bubble {
+      background: var(--user-bg);
+      border: 1px solid var(--user-border);
+      color: var(--user-text);
+      border-radius: var(--r) var(--r) 4px var(--r);
+    }
+    .msg.assistant .msg-bubble {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--r) var(--r) var(--r) 4px;
+    }
+    .msg.error .msg-bubble {
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-text);
+    }
+
+    /* ── Markdown styles ── */
+    .msg-bubble h1, .msg-bubble h2, .msg-bubble h3, .msg-bubble h4 {
+      font-family: 'Playfair Display', serif;
+      margin: 20px 0 10px;
+      line-height: 1.3;
+    }
+    .msg-bubble h1 {
+      font-size: 1.5em;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .msg-bubble h2 { font-size: 1.2em; color: var(--accent); font-family: 'Inter', sans-serif; font-weight: 600; }
+    .msg-bubble h3 { font-size: 1.05em; color: #c9d8f0; font-family: 'Inter', sans-serif; font-weight: 600; }
+    .msg-bubble h4 { font-size: 0.95em; color: var(--muted); font-family: 'Inter', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .msg-bubble p { margin: 8px 0; }
+    .msg-bubble ul, .msg-bubble ol { padding-left: 22px; margin: 8px 0; }
+    .msg-bubble li { margin: 5px 0; }
+    .msg-bubble a {
+      color: var(--accent);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(232,160,48,0.3);
+      transition: border-color 0.15s, color 0.15s;
+      word-break: break-all;
+    }
+    .msg-bubble a:hover { color: var(--accent2); border-color: var(--accent2); }
+    .msg-bubble strong { color: #dde6f5; font-weight: 600; }
+    .msg-bubble em { color: var(--muted); font-style: italic; }
+    .msg-bubble code {
+      background: rgba(0,0,0,0.35);
+      border: 1px solid var(--border);
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.85em;
+      font-family: "SF Mono", "Fira Code", Consolas, monospace;
+      color: #9ecfff;
+    }
+    .msg-bubble pre {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+    .msg-bubble pre code { background: none; border: none; padding: 0; color: #a8c8f0; }
+    .msg-bubble blockquote {
+      border-left: 3px solid var(--accent-dim);
+      padding: 4px 0 4px 14px;
+      color: var(--muted);
+      margin: 10px 0;
+      font-style: italic;
+    }
+    .msg-bubble hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 18px 0;
+    }
+    .msg-bubble table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14px; }
+    .msg-bubble th, .msg-bubble td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+    .msg-bubble th { background: rgba(232,160,48,0.08); color: var(--accent); font-weight: 600; }
+    .msg-bubble tr:hover td { background: rgba(255,255,255,0.02); }
+    .msg-bubble img {
+      max-width: 100%;
+      border-radius: 10px;
+      margin: 10px 0;
+      display: block;
+      border: 1px solid var(--border);
+    }
+
+    /* ── YouTube embeds ── */
+    .yt-wrap {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      margin: 12px 0;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .yt-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* ── Status bar ── */
+    #status {
+      position: relative;
+      z-index: 2;
+      padding: 0 24px;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 8px;
+      align-items: center;
+      min-height: 0;
+      overflow-x: auto;
+      overflow-y: visible;
+      transition: padding 0.2s;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+    #status::-webkit-scrollbar { display: none; }
+    #status:not(:empty) { padding: 10px 24px; }
+
+    .thinking-pill {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: rgba(232,160,48,0.07);
+      border: 1px solid rgba(232,160,48,0.2);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: rgba(232,160,48,0.8);
+    }
+    .spinner {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(232,160,48,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tool-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.35s ease;
+      background: rgba(60,120,200,0.1);
+      border: 1px solid rgba(60,120,200,0.2);
+      color: #7ab8e8;
+    }
+    .tool-pill.done {
+      background: rgba(60,180,100,0.08);
+      border-color: rgba(60,180,100,0.2);
+      color: #70c87e;
+    }
+    .tool-pill.fade-out {
+      opacity: 0;
+      transform: scale(0.85);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .tool-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+    .tool-pill:not(.done) .tool-dot { animation: blink 1.2s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    /* ── Input area ── */
+    #input-area {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      padding: 16px 24px 20px;
+      background: rgba(14,20,32,0.9);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    #input-wrap {
+      flex: 1;
+      position: relative;
+    }
+    #input {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--text);
+      padding: 12px 16px;
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
+      resize: none;
+      outline: none;
+      max-height: 150px;
+      overflow-y: auto;
+      line-height: 1.55;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      display: block;
+    }
+    #input:focus {
+      border-color: rgba(232,160,48,0.4);
+      box-shadow: 0 0 0 3px rgba(232,160,48,0.06);
+    }
+    #input::placeholder { color: var(--muted); }
+    #input:disabled { opacity: 0.5; }
+
+    #send {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, var(--accent), #c8861a);
+      border: none;
+      border-radius: 12px;
+      color: #0d1117;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    #send:disabled { opacity: 0.35; cursor: not-allowed; }
+    #send:not(:disabled):hover { opacity: 0.88; transform: scale(1.04); }
+    #send:not(:disabled):active { transform: scale(0.97); }
+    #send svg { width: 18px; height: 18px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">🦜</div>
+  <div>
+    <h1>Zai</h1>
+    <p>Intelligent solo travel planner — events, safety, real itineraries</p>
+  </div>
+</header>
+
+<div id="messages">
+  <div id="empty">
+    <div class="empty-icon">✈️</div>
+    <h2>Where to next?</h2>
+    <p>Tell me a destination, a timeframe, or just a vibe — I'll find unique events, safety context, and build your itinerary.</p>
+    <div class="suggestions">
+      <div class="suggestion" onclick="prefill(this)">🇯🇵 Japan in late October</div>
+      <div class="suggestion" onclick="prefill(this)">🎪 Best festivals in February</div>
+      <div class="suggestion" onclick="prefill(this)">🏔️ Solo trek in Patagonia</div>
+      <div class="suggestion" onclick="prefill(this)">🌊 Beach escape, mid-range budget</div>
+    </div>
+  </div>
+</div>
+
+<div id="status"></div>
+
+<div id="input-area">
+  <div id="input-wrap">
+    <textarea id="input" rows="1" placeholder="Where do you want to go?"></textarea>
+  </div>
+  <button id="send" title="Send (Enter)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+    </svg>
+  </button>
+</div>
+
+<script>
+  marked.setOptions({ breaks: true, gfm: true });
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let sessionId  = null;
+  let streaming  = false;
+  const tools    = new Map(); // name → pill el
+
+  // ── DOM ───────────────────────────────────────────────────────────────────
+  const msgsEl   = document.getElementById('messages');
+  const statusEl = document.getElementById('status');
+  const inputEl  = document.getElementById('input');
+  const sendBtn  = document.getElementById('send');
+
+  // ── Suggestion chips ──────────────────────────────────────────────────────
+  function prefill(el) {
+    inputEl.value = el.textContent.replace(/^.{2}\s/, ''); // strip emoji
+    inputEl.focus();
+    resizeInput();
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function scrollBottom() {
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  function setStreaming(v) {
+    streaming = v;
+    sendBtn.disabled = v;
+    inputEl.disabled = v;
+  }
+
+  function hideEmpty() {
+    const el = document.getElementById('empty');
+    if (el) el.remove();
+  }
+
+  function resizeInput() {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + 'px';
+  }
+
+  // ── YouTube embed helper ──────────────────────────────────────────────────
+  function embedYouTube(html) {
+    return html.replace(
+      /(?:<p>)?(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?(?:[^"'\s]*&)?v=|youtu\.be\/)([\w-]+)[^\s<"]*?)(?:<\/p>)?/g,
+      (_, _url, id) =>
+        `<div class="yt-wrap"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen loading="lazy"></iframe></div>`
+    );
+  }
+
+  function renderMd(text) {
+    let html = marked.parse(text);
+    html = embedYouTube(html);
+    return html;
+  }
+
+  // ── Append message ────────────────────────────────────────────────────────
+  function appendMessage(role, content, isMd = false) {
+    hideEmpty();
+    const wrap   = document.createElement('div');
+    wrap.className = `msg ${role}`;
+
+    const label  = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? 'You' : role === 'error' ? 'Error' : 'Zai 🦜';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+
+    if (isMd) {
+      bubble.innerHTML = renderMd(content);
+      bubble.querySelectorAll('a').forEach(a => {
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+      });
+    } else {
+      bubble.textContent = content;
+    }
+
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+    msgsEl.appendChild(wrap);
+    scrollBottom();
+  }
+
+  // ── Thinking pill ─────────────────────────────────────────────────────────
+  let thinkEl = null;
+
+  function showThinking(label) {
+    clearThinking();
+    thinkEl = document.createElement('div');
+    thinkEl.className = 'thinking-pill';
+    thinkEl.innerHTML = `<div class="spinner"></div><span>${label}</span>`;
+    statusEl.appendChild(thinkEl);
+  }
+
+  function updateThinking(label) {
+    if (thinkEl) thinkEl.querySelector('span').textContent = label;
+    else showThinking(label);
+  }
+
+  function clearThinking() {
+    if (thinkEl) { thinkEl.remove(); thinkEl = null; }
+  }
+
+  // ── Tool pills ────────────────────────────────────────────────────────────
+  function addTool(name, label) {
+    const pill = document.createElement('div');
+    pill.className = 'tool-pill';
+    pill.innerHTML = `<div class="tool-dot"></div><span>${label}</span>`;
+    statusEl.appendChild(pill);
+    tools.set(name, pill);
+  }
+
+  function doneTool(name) {
+    const pill = tools.get(name);
+    if (!pill) return;
+    pill.classList.add('done');
+    setTimeout(() => {
+      pill.classList.add('fade-out');
+      pill.addEventListener('transitionend', () => pill.remove(), { once: true });
+    }, 1500);
+  }
+
+  function clearStatus() {
+    statusEl.innerHTML = '';
+    thinkEl = null;
+    tools.clear();
+  }
+
+  // ── SSE parser ────────────────────────────────────────────────────────────
+  async function* parseSSE(res) {
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw) try { yield JSON.parse(raw); } catch {}
+      }
+    }
+  }
+
+  // ── Event dispatch ────────────────────────────────────────────────────────
+  function onEvent(ev) {
+    switch (ev.type) {
+      case 'session':   sessionId = ev.session_id; break;
+      case 'thinking':  updateThinking(ev.label); break;
+      case 'tool_start':addTool(ev.tool, ev.label); break;
+      case 'tool_end':  doneTool(ev.tool); break;
+      case 'response':
+        clearStatus();
+        appendMessage('assistant', ev.text, true);
+        break;
+      case 'error':
+        clearStatus();
+        appendMessage('error', ev.message);
+        break;
+    }
+  }
+
+  // ── Send ──────────────────────────────────────────────────────────────────
+  async function send() {
+    const msg = inputEl.value.trim();
+    if (!msg || streaming) return;
+
+    appendMessage('user', msg);
+    inputEl.value = '';
+    resizeInput();
+    setStreaming(true);
+    showThinking('Planning your trip…');
+
+    try {
+      const res = await fetch('/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, session_id: sessionId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `HTTP ${res.status}`);
+      }
+      for await (const ev of parseSSE(res)) onEvent(ev);
+    } catch (e) {
+      clearStatus();
+      appendMessage('error', e.message);
+    } finally {
+      setStreaming(false);
+    }
+  }
+
+  // ── Keyboard + resize ─────────────────────────────────────────────────────
+  inputEl.addEventListener('input', resizeInput);
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  sendBtn.addEventListener('click', send);
+  inputEl.focus();
+</script>
+</body>
+</html>

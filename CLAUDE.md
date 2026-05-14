@@ -19,7 +19,7 @@ uv run pytest tests/test_tools.py::TestCalendarMath::test_tomorrow
 uv run python mcp_server.py          # listens on 127.0.0.1:8000
 
 # Start API server (requires LLM gateway + MCP server running)
-uv run fastapi dev main.py
+uv run python main.py
 
 # Interactive CLI (requires LLM gateway + MCP server running)
 uv run python travel_agent.py
