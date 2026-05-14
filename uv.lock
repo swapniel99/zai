@@ -1694,6 +1694,7 @@ dependencies = [
     { name = "httpx" },
     { name = "mcp" },
     { name = "parsedatetime" },
+    { name = "python-dotenv" },
     { name = "readability-lxml" },
 ]
 
@@ -1713,6 +1714,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mcp", specifier = ">=1.27.1" },
     { name = "parsedatetime", specifier = ">=2.6" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "readability-lxml", specifier = ">=0.8.4.1" },
 ]
 

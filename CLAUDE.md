@@ -15,23 +15,51 @@ uv run pytest
 uv run pytest tests/test_tools.py::TestCalendarMath
 uv run pytest tests/test_tools.py::TestCalendarMath::test_tomorrow
 
-# Start MCP server
-uv run python mcp_server.py
+# Start MCP server (must be running before travel_agent or main.py)
+uv run python mcp_server.py          # listens on 127.0.0.1:8000
+
+# Start API server (requires LLM gateway + MCP server running)
+uv run fastapi dev main.py
+
+# Interactive CLI (requires LLM gateway + MCP server running)
+uv run python travel_agent.py
 ```
 
 ## Architecture
 
-**Solo Explorer Agent** — agentic travel planner. Phases 1–2 complete; Phase 3+ in progress.
+**Solo Explorer Agent** — agentic travel planner. Phases 1–3 complete; Phase 4 (frontend) in progress.
 
 ### Current state (complete)
 - `mcp_server.py` — `FastMCP` server registering 6 tools. Tool *registration only*; all logic lives in `tools/`.
 - `tools/` — 6 custom Python modules, each mapping to one PRD capability (web search, page reading, Reddit, media, date math, climate).
 - `tests/test_tools.py` — 21 pytest tests with `asyncio_mode=auto`; tests primary paths, fallback chains, and MCP registration.
+- `travel_agent.py` — core agentic loop. Connects to `mcp_server.py` via HTTP (`streamable_http_client`), fetches tool schemas, runs native tool-calling loop (LLM → tools → LLM) via `llm_gatewayV2`. Exposes `run()` (blocking) and `run_stream()` (async generator, SSE events). `MAX_TURNS = 12`.
+- `main.py` — FastAPI. `POST /chat/stream` (SSE), `POST /chat` (JSON fallback), `GET /health`. In-memory sessions keyed by `session_id`.
 
 ### Planned (not yet built)
-- `travel_agent.py` — agentic loop: connect to MCP server via streamable-http, inject current date into system prompt, native JSON tool-calling loop (LLM → tools → LLM), in-memory session history.
-- `main.py` (FastAPI) — `POST /chat`, session management, spawns MCP server subprocess.
-- Browser frontend — stateless chat UI, renders Markdown with embedded images/video.
+- Browser frontend — stateless chat UI consuming `/chat/stream` SSE, renders Markdown with embedded images/video.
+
+### SSE event schema (`POST /chat/stream`)
+Events are `data: <json>\n\n` lines. Frontend must handle all types:
+
+| `type`       | Fields                          | When                                      |
+|--------------|---------------------------------|-------------------------------------------|
+| `session`    | `session_id`                    | First event; carry `session_id` forward   |
+| `thinking`   | `label`                         | Before each LLM call ("Planning your trip...", "Crafting your itinerary...") |
+| `tool_start` | `tool`, `label`                 | When a tool call begins (parallel-aware)  |
+| `tool_end`   | `tool`, `label`                 | When a tool call completes                |
+| `response`   | `text`                          | Final Markdown itinerary                  |
+| `error`      | `message`                       | Agent-level exception                     |
+| `done`       | —                               | Stream complete                           |
+
+Parallel tool calls fire all `tool_start` events before any `tool_end` (via `asyncio.TaskGroup`).
+
+### LLM gateway
+- Client lives in `client.py` at repo root (`LLM` class → `POST /v1/chat`)
+- Default URL: `http://localhost:8100` — override with `LLM_GATEWAY_V2_URL` in `.env`
+- **No streaming required from gateway** — all LLM calls use `llm.chat()` (blocking). SSE progress comes from tool call events, not LLM token streaming.
+- `LLM_PROVIDER` env var sets provider (e.g. `"cerebras"`, `"groq"`); `None` = auto-select
+- MCP server URL: `MCP_SERVER_URL` (default `http://127.0.0.1:8000/mcp`), port: `MCP_PORT` (default `8000`)
 
 ### Tool fallback chains
 - `read_webpage`: httpx standard TLS → httpx `verify=False` → explicit error string (LLM falls back to `search_web`)
@@ -44,11 +72,13 @@ uv run python mcp_server.py
 - `httpx` — async HTTP for `read_webpage`, `search_reddit`, `get_climate_data`
 - `readability-lxml` + `beautifulsoup4` — webpage text extraction
 - `parsedatetime` + `dateparser` — date resolution pipeline in `calendar_math`
+- `python-dotenv` — loaded at startup in both `main.py` and `travel_agent.py`
 - Open-Meteo APIs — free, no API key required
-- Reddit public JSON API — no credentials required (env vars `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` enable full post content at higher rate limits)
+- Reddit public JSON API — no credentials required (`REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` in `.env` reserved for future OAuth upgrade)
 
 ### Design constraints
 - LLM must call `calendar_math_tool` for all date expressions — never compute dates itself
 - `search_reddit` restricted to travel subreddits (`solotravel`, `travel`, `TravelHacks`, etc.)
 - Agent injects `datetime.now()` into system prompt at runtime for temporal grounding
+- Final response must be pure Markdown itinerary — system prompt explicitly blocks `<reasoning>` blocks in the final turn
 - System prompt lives in `docs/draft_prompt.md`; PRD in `docs/PRD.md`; architecture in `docs/architecture.md`

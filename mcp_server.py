@@ -80,4 +80,4 @@ async def get_climate_data_tool(location: str, month: str) -> str:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport="streamable-http", host="127.0.0.1", port=8000)

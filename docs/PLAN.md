@@ -20,25 +20,31 @@
 - [x] `tests/test_tools.py` — pytest suite (21 tests, primary + fallback paths)
 - [x] Write retrospective plan (`docs/mcp_server_plan.md`)
 
-## Phase 3: Agent Orchestrator
+## Phase 3: Agent Orchestrator ✅
 
-- [ ] `travel_agent.py` — core agentic loop
-  - [ ] Connect to `mcp_server.py` via streamable-http, fetch tool schemas
-  - [ ] Inject current date into system prompt at runtime
-  - [ ] Native tool-calling loop (LLM → tools → LLM) until no more tool calls
-  - [ ] In-memory session/message history per session
-  - [ ] Stream final Markdown response to caller
+- [x] `travel_agent.py` — core agentic loop
+  - [x] Spawn `mcp_server.py` as stdio subprocess, fetch tool schemas
+  - [x] Inject `datetime.now()` + no-reasoning instruction into system prompt at runtime
+  - [x] Native tool-calling loop (LLM → tools → LLM) via `llm_gatewayV2`, `asyncio.TaskGroup` parallel dispatch
+  - [x] `AgentTrace` (Pydantic) for structured event logging
+  - [x] `run()` — blocking, returns `(markdown, updated_history)`
+  - [x] `run_stream()` — async generator yielding SSE events: `thinking` / `tool_start` / `tool_end` / `response` / `error` / `done`
+  - [x] `_tool_label()` — informative labels from tool name + args (e.g. "Searching Reddit for 'solo travel Japan'")
+  - [x] CLI entrypoint with live progress output
 
-## Phase 4: API Layer
+## Phase 4: API Layer ✅
 
-- [ ] FastAPI app (`main.py`)
-  - [ ] `POST /chat` — accepts user message + session_id, returns streamed itinerary
-  - [ ] Session management (in-memory, keyed by session_id)
-  - [ ] Start MCP server as subprocess on app startup
+- [x] FastAPI app (`main.py`)
+  - [x] `POST /chat/stream` — SSE stream of progress events + final Markdown
+  - [x] `POST /chat` — JSON fallback (blocking)
+  - [x] `GET /health`
+  - [x] In-memory sessions keyed by `session_id` (auto-generated if omitted)
+  - [x] `load_dotenv()` on startup; `LLM_GATEWAY_V2_URL` configures gateway
 
 ## Phase 5: Frontend
 
 - [ ] Browser UI
-  - [ ] Chat input + message history
-  - [ ] Render Markdown itineraries (images, video embeds)
+  - [ ] Connect to `POST /chat/stream` SSE
+  - [ ] Show live progress: thinking + tool activity feed
+  - [ ] Render final Markdown itinerary (images, video embeds)
   - [ ] Stateless — sends only latest user input + session_id
