@@ -645,11 +645,37 @@
     carousel.appendChild(dotsWrap);
 
     let cur = 0;
+
+    function visibleSlides() {
+      return Array.from(slides.children).filter(s => s.style.display !== 'none');
+    }
+
     function go(n) {
-      cur = (n + imgs.length) % imgs.length;
-      slides.style.transform = `translateX(-${cur * 100}%)`;
+      const visible = visibleSlides();
+      if (!visible.length) { carousel.remove(); return; }
+      const allSlides = Array.from(slides.children);
+      // find nth visible slide
+      cur = ((n % visible.length) + visible.length) % visible.length;
+      const target = visible[cur];
+      const idx = allSlides.indexOf(target);
+      slides.style.transform = `translateX(-${idx * 100}%)`;
       dots.forEach((d, i) => d.classList.toggle('active', i === cur));
     }
+
+    imgs.forEach((img, i) => {
+      const onErr = () => {
+        const slide = img.closest('.slide');
+        if (slide) slide.style.display = 'none';
+        dots[i].style.display = 'none';
+        const visible = visibleSlides();
+        if (!visible.length) { carousel.remove(); return; }
+        if (cur >= visible.length) go(0);
+        else go(cur);
+      };
+      img.onerror = onErr;
+      if (img.complete && !img.naturalHeight) onErr();
+    });
+
     btnPrev.onclick = () => go(cur - 1);
     btnNext.onclick = () => go(cur + 1);
     return carousel;
@@ -705,6 +731,11 @@
     if (isMd) {
       bubble.innerHTML = renderMd(content);
       buildCarousels(bubble);
+      bubble.querySelectorAll('img:not(.img-carousel img)').forEach(img => {
+        const onErr = () => img.closest('p')?.remove() ?? img.remove();
+        img.onerror = onErr;
+        if (img.complete && !img.naturalHeight) onErr();
+      });
       bubble.querySelectorAll('a').forEach(a => {
         a.target = '_blank';
         a.rel = 'noopener noreferrer';

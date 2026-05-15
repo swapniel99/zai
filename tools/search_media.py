@@ -1,3 +1,4 @@
+import asyncio
 import httpx
 from ddgs import DDGS
 
@@ -16,8 +17,15 @@ def _is_watermarked(url: str) -> bool:
         return False
 
 
+async def _is_image_alive(client: httpx.AsyncClient, url: str) -> bool:
+    try:
+        r = await client.head(url, timeout=4, follow_redirects=True)
+        return r.status_code < 400
+    except Exception:
+        return False
+
+
 def _is_youtube_embeddable(url: str) -> bool:
-    """Return True if the YouTube video allows embedding."""
     try:
         r = httpx.get(
             "https://www.youtube.com/oembed",
@@ -52,14 +60,33 @@ def search_media(query: str, media_type: str = "image") -> str:
             return "\n".join(lines)
 
         else:
-            results = DDGS().images(query, max_results=10)
+            results = DDGS().images(query, max_results=15)
             if not results:
                 return f"No images found for: {query}"
-            clean = [r for r in results if not _is_watermarked(r.get("image", ""))][:5]
-            if not clean:
-                return f"No non-watermarked images found for: {query}"
+
+            candidates = [r for r in results if not _is_watermarked(r.get("image", ""))]
+
+            async def pick_live(candidates, want=5):
+                async with httpx.AsyncClient() as client:
+                    alive = []
+                    batch_size = min(len(candidates), want * 2)
+                    checks = await asyncio.gather(
+                        *[_is_image_alive(client, r["image"]) for r in candidates[:batch_size]]
+                    )
+                    alive = [r for r, ok in zip(candidates[:batch_size], checks) if ok]
+                    if len(alive) < want and batch_size < len(candidates):
+                        rest = candidates[batch_size:]
+                        checks2 = await asyncio.gather(
+                            *[_is_image_alive(client, r["image"]) for r in rest]
+                        )
+                        alive += [r for r, ok in zip(rest, checks2) if ok]
+                    return alive[:want]
+
+            live = asyncio.run(pick_live(candidates))
+            if not live:
+                return f"No accessible images found for: {query}"
             lines = [f"Images for: {query}\n"]
-            for i, r in enumerate(clean, 1):
+            for i, r in enumerate(live, 1):
                 lines.append(f"{i}. {r.get('image', '')}")
             return "\n".join(lines)
 
