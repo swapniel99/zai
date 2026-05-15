@@ -103,7 +103,7 @@ The `/chat/stream` endpoint emits server-sent events. Clients must handle all ty
 ### Install
 
 ```bash
-git clone https://github.com/your-username/zai
+git clone https://github.com/swapniel99/zai
 cd zai
 uv sync
 ```
