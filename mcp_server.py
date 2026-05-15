@@ -74,6 +74,12 @@ async def get_climate_data_tool(location: str, month: str) -> str:
     return await get_climate_data(location, month)
 
 
+@mcp.custom_route("/health", methods=["GET"])
+async def health(request):
+    from starlette.responses import JSONResponse
+    return JSONResponse({"status": "ok"})
+
+
 if __name__ == "__main__":
     port = int(os.getenv("MCP_PORT", "8000"))
     mcp.run(transport="streamable-http", host="0.0.0.0", port=port)
