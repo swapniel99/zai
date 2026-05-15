@@ -36,7 +36,7 @@ from client import LLM
 
 _PROMPT_PATH = Path(__file__).parent / "prompt.md"
 _MCP_SERVER = Path(__file__).parent / "mcp_server.py"
-MAX_TURNS = 12
+MAX_TURNS = 20
 LLM_PROVIDER: str | None = os.getenv("LLM_PROVIDER")  # e.g. "cerebras", "groq", None = auto
 MCP_PORT: int = int(os.getenv("MCP_PORT", "8000"))
 MCP_SERVER_URL: str = os.getenv("MCP_SERVER_URL", f"http://127.0.0.1:{MCP_PORT}/mcp")
