@@ -25,9 +25,23 @@ uv run python main.py
 uv run python travel_agent.py
 ```
 
+## Environment
+
+Create `.env` at repo root. Required/optional vars:
+```
+LLM_GATEWAY_V2_URL=http://localhost:8100   # LLM gateway endpoint
+LLM_PROVIDER=cerebras                      # or groq, or omit for auto-select
+MCP_SERVER_URL=http://127.0.0.1:8000/mcp  # optional override
+MCP_PORT=8000                              # optional override
+REDDIT_CLIENT_ID=                          # optional; enables full post content
+REDDIT_CLIENT_SECRET=                      # optional; enables full post content
+```
+
+Agent traces (full LLM turn logs) written to `logs/trace_<timestamp>.json` automatically.
+
 ## Architecture
 
-**Solo Explorer Agent** — agentic travel planner. All 4 phases complete.
+**ZAI (Zen Adventure Intelligence)** — agentic travel planner. All 4 phases complete.
 
 ### Current state (complete)
 - `mcp_server.py` — `FastMCP` server registering 6 tools. Tool *registration only*; all logic lives in `tools/`.

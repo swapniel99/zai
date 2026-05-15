@@ -524,12 +524,22 @@
   }
 
   // ── YouTube embed helper ──────────────────────────────────────────────────
+  const YT_HREF_RE = /https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?(?:[^"'\s]*&)?v=|youtu\.be\/)([\w-]+)[^"]*/;
+
   function embedYouTube(html) {
-    return html.replace(
-      /(?:<p>)?(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?(?:[^"'\s]*&)?v=|youtu\.be\/)([\w-]+)[^\s<"]*?)(?:<\/p>)?/g,
+    // <li> wrapping an anchor whose href is a YouTube URL (marked.js auto-links bare URLs in lists)
+    html = html.replace(
+      /<li>\s*(?:<p>)?\s*<a[^>]+href="(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?(?:[^"'\s]*&)?v=|youtu\.be\/)([\w-]+)[^"]*)"[^>]*>.*?<\/a>\s*(?:<\/p>)?\s*<\/li>/g,
       (_, _url, id) =>
         `<div class="yt-wrap"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen loading="lazy"></iframe></div>`
     );
+    // <p> wrapping an anchor whose href is a YouTube URL
+    html = html.replace(
+      /<p>\s*<a[^>]+href="(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?(?:[^"'\s]*&)?v=|youtu\.be\/)([\w-]+)[^"]*)"[^>]*>.*?<\/a>\s*<\/p>/g,
+      (_, _url, id) =>
+        `<div class="yt-wrap"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen loading="lazy"></iframe></div>`
+    );
+    return html;
   }
 
   function renderMd(text) {
@@ -660,6 +670,7 @@
     resizeInput();
     setStreaming(true);
     showThinking('Planning your trip…');
+    scrollBottom();
 
     try {
       const res = await fetch('/chat/stream', {

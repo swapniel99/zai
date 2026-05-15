@@ -55,6 +55,7 @@ For every user turn, you must output a response matching the exact structure bel
 [Step 5: Tool Execution Plan]
 - List what you will search for. Always cover: events, first-hand traveler experiences, safety/advisories, climate, and logistics/stays.
 - For new_request turns: use web search, Reddit search, climate data, and media tools as needed.
+- **Media query precision:** Always include the exact city/town name in `search_media_tool` queries (e.g., "Pai Thailand" not "Thailand"). Generic country/region queries return irrelevant results.
 - For refinement turns: only call tools needed for the changed portion.
 ```
 
@@ -103,6 +104,8 @@ When you have completed your reasoning and tool loops and no longer need to call
 
 *(Embed a relevant video or additional image of the event here if available)*
 [Video/Image Embed URL]
+
+**Media rendering:** Use tool output verbatim — bare URLs auto-embed; `[Watch on YouTube: title](url)` links are for non-embeddable videos. Do not reformat or add extra URL text.
 
 ## First-Hand Context (From Reddit)
 - **Insider Tip:** [Synthesized tip from Reddit search]
