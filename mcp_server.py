@@ -1,3 +1,4 @@
+import os
 from fastmcp import FastMCP
 
 from tools.calendar_math import calendar_math
@@ -74,4 +75,5 @@ async def get_climate_data_tool(location: str, month: str) -> str:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http", host="127.0.0.1", port=8000)
+    port = int(os.getenv("MCP_PORT", "8000"))
+    mcp.run(transport="streamable-http", host="0.0.0.0", port=port)

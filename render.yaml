@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: zai-mcp
+    runtime: python
+    repo: https://github.com/swapniel99/zai
+    buildCommand: pip install uv && uv sync
+    startCommand: uv run python mcp_server.py
+    plan: free
+    envVars:
+      - key: MCP_PORT
+        value: "8000"
+      - key: PYTHON_VERSION
+        value: "3.14"
+
+  - type: web
+    name: zai-app
+    runtime: python
+    repo: https://github.com/swapniel99/zai
+    buildCommand: pip install uv && uv sync
+    startCommand: uv run python main.py
+    plan: free
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: PYTHON_VERSION
+        value: "3.14"
+      - key: LLM_GATEWAY_V2_URL
+        value: https://llm-gatewayv2.onrender.com   # update after gateway deploys
+      - key: MCP_SERVER_URL
+        value: https://zai-mcp.onrender.com/mcp      # update after mcp deploys
+      - key: LLM_PROVIDER
+        value: cerebras
+      - key: GATEWAY_API_KEY
+        sync: false   # fill in Render dashboard
