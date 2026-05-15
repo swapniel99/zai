@@ -2,6 +2,10 @@
 
 An agentic AI travel planner that researches, reasons, and builds fully personalized travel itineraries — using live web data, Reddit, climate APIs, and rich media.
 
+## Watch demo on YouTube
+
+[![ZAI Demo](https://i.ytimg.com/vi/2XzlGg0mgog/maxresdefault.jpg)](https://youtu.be/zm0W2Hm5zY4)
+
 ---
 
 ## What It Does
