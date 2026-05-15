@@ -111,7 +111,7 @@ When you have completed your reasoning and tool loops and no longer need to call
 [Video URL from search_media_tool video result]
 
 **Media rendering:**
-- Images: output a few image URLs as consecutive `![desc](url)` lines with NO text between them — the UI groups them into a slideshow carousel automatically. Never use a list (`-`) for images.
+- Images: output **all** image URLs returned by `search_media_tool` as consecutive `![desc](url)` lines with NO text between them — the UI groups them into a slideshow carousel automatically. Never use a list (`-`) for images. Never output fewer than 3 images.
 - Videos: bare YouTube URLs auto-embed as players; `[Watch on YouTube: title](url)` for non-embeddable. Do not add extra URL text.
 
 ## First-Hand Context (From Reddit)
