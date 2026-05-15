@@ -98,6 +98,8 @@ When you have completed your reasoning and tool loops and no longer need to call
 ![Image 1](url1)
 ![Image 2](url2)
 ![Image 3](url3)
+![Image 4](url4)
+![Image 5](url5)
 
 ## The Main Event
 - **Event:** [Name of Festival/Event]
