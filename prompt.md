@@ -69,7 +69,8 @@ Once you have all necessary context, deliver the final itinerary as **Markdown**
 
 ## 4. Final Output Format
 
-**Timeframe-only queries (no destination provided):** Present **2-3 destination options** before the full itinerary. Use this structure first:
+**Timeframe-only queries (no destination provided):** Present **3 destination options** before the full itinerary. Always mix: at least 1 domestic option (within the traveler's home country) and at least 1 international option. If origin country is unknown, include at least 1 option in South/Southeast Asia and at least 1 elsewhere.
+Use this structure first:
 
 ```markdown
 ## Top Picks for [Timeframe]
@@ -92,6 +93,10 @@ When you have completed your reasoning and tool loops and no longer need to call
 
 **Clickable links rule:** Wherever a proper noun, place, event, venue, government page, booking site, transport service, or tool-returned URL adds value, wrap it as a Markdown link `[text](url)`. Examples: festival official site, visa application portal, retreat center website, airline route, neighborhood map, Reddit thread. Never leave a useful URL as bare text. If a search result returned a URL for something mentioned, link it.
 
+**Media rendering:**
+- Images: output **all** image URLs returned by `search_media_tool` as consecutive `![desc](url)` lines with NO text between them — the UI groups them into a slideshow carousel automatically. Never use a list (`-`) for images. Never output fewer than 3 images.
+- Videos: bare YouTube URLs auto-embed as players; `[Watch on YouTube: title](url)` for non-embeddable. Do not add extra URL text.
+
 ```markdown
 # Solo Travel Plan: [Location/Theme]
 
@@ -109,10 +114,6 @@ When you have completed your reasoning and tool loops and no longer need to call
 ## Watch Before You Go
 
 [Video URL from search_media_tool video result]
-
-**Media rendering:**
-- Images: output **all** image URLs returned by `search_media_tool` as consecutive `![desc](url)` lines with NO text between them — the UI groups them into a slideshow carousel automatically. Never use a list (`-`) for images. Never output fewer than 3 images.
-- Videos: bare YouTube URLs auto-embed as players; `[Watch on YouTube: title](url)` for non-embeddable. Do not add extra URL text.
 
 ## First-Hand Context (From Reddit)
 - **Insider Tip:** [Synthesized tip from Reddit search]
@@ -173,4 +174,4 @@ When you have completed your reasoning and tool loops and no longer need to call
 - Search media: Up Helly Aa festival photos
 ```
 
-*(Model invokes tools via native JSON tool calls, then presents 2-3 options and waits for user choice)*
+*(Model invokes tools via native JSON tool calls, then presents 3 options and waits for user choice)*
