@@ -13,9 +13,8 @@ mcp = FastMCP("solo-explorer-tools")
 @mcp.tool()
 def search_web_tool(query: str, max_results: int = 5) -> str:
     """
-    Search the web for travel information, event dates, visa requirements,
-    safety advisories, and general destination research.
-    Returns ranked snippets with URLs. Use read_webpage_tool to get full content from a URL.
+    Search the web for any query.
+    Returns ranked snippets with URLs. Use read_webpage_tool to fetch full content from a URL.
     """
     return search_web(query, max_results)
 
@@ -23,10 +22,8 @@ def search_web_tool(query: str, max_results: int = 5) -> str:
 @mcp.tool()
 async def read_webpage_tool(url: str) -> str:
     """
-    Fetch and extract full text content from a URL.
-    Use this after search_web_tool to deeply investigate official government advisories,
-    visa portals, festival schedules, or travel forums.
-    If the site has unrecoverable TLS issues, falls back to a clear error — use search snippets instead.
+    Fetch and extract the full text content of a URL.
+    Falls back to a clear error on unrecoverable TLS failures — use search snippets instead.
     """
     return await read_webpage(url)
 
@@ -34,30 +31,28 @@ async def read_webpage_tool(url: str) -> str:
 @mcp.tool()
 async def search_reddit_tool(query: str, max_results: int = 5) -> str:
     """
-    Search Reddit for authentic first-hand traveler experiences.
-    Use for: solo travel safety tips, local substance laws, nightlife recommendations,
-    event reviews, and scam warnings. Targets r/solotravel, r/travel, and city subreddits.
-    Set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET env vars for full post content (60 req/min).
-    Without credentials, falls back to web search snippets (10 req/min).
+    Search Reddit for first-hand community discussions and opinions on any topic.
+    Returns post titles, scores, and content snippets from relevant subreddits.
     """
     return await search_reddit(query, max_results)
 
 
 @mcp.tool()
-def search_media_tool(query: str, media_type: str = "image") -> str:
+def search_media_tool(query: str, media_type: str = "image", max_results: int = 5) -> str:
     """
-    Fetch media URLs for embedding in the itinerary response.
-    media_type: 'image' for photos of a location or event, 'video' for embeddable clips (prefers YouTube).
-    Returns direct URLs ready to use in Markdown image/video embeds.
+    Fetch media URLs for a query.
+    media_type: 'image' returns live, non-watermarked photo URLs ready for Markdown embeds.
+    media_type: 'video' returns up to 8 results, each with a title and URL (prefers YouTube).
+    max_results: max images to return (default 5); ignored for video.
     """
-    return search_media(query, media_type)
+    return search_media(query, media_type, max_results)
 
 
 @mcp.tool()
 def calendar_math_tool(query: str) -> str:
     """
-    Resolve a natural language date expression to a concrete date. Always use this tool
-    instead of guessing dates yourself — it eliminates hallucination for time-sensitive itineraries.
+    Resolve a natural language date expression to a concrete date.
+    Always use this tool instead of computing dates yourself — eliminates hallucination.
 
     Supported patterns:
     - Fuzzy month        : 'early May', 'mid October', 'late April 2027'
@@ -72,7 +67,6 @@ def calendar_math_tool(query: str) -> str:
 async def get_climate_data_tool(location: str, month: str) -> str:
     """
     Get average temperature range and precipitation for a location and month.
-    Use for location-first queries (what's the best time to visit?) and climate clarifications.
     month: month name or 'Month YYYY' — e.g. 'April', 'April 2027', 'January'.
     Uses live forecast for near-term dates; ERA5 historical archive (3-year avg) for future months.
     """

@@ -37,10 +37,11 @@ def _is_youtube_embeddable(url: str) -> bool:
         return False
 
 
-def search_media(query: str, media_type: str = "image") -> str:
+def search_media(query: str, media_type: str = "image", max_results: int = 5) -> str:
     """
     Fetch media URLs for embedding in the itinerary.
     media_type: 'image' or 'video' (videos prefer YouTube links).
+    max_results: max images to return (default 5; use 3 for multi-city per-stop calls).
     Returns direct URLs ready to embed in Markdown.
     """
     try:
@@ -60,13 +61,14 @@ def search_media(query: str, media_type: str = "image") -> str:
             return "\n".join(lines)
 
         else:
-            results = DDGS().images(query, max_results=15)
+            want = max(1, max_results)
+            results = DDGS().images(query, max_results=want * 3)
             if not results:
                 return f"No images found for: {query}"
 
             candidates = [r for r in results if not _is_watermarked(r.get("image", ""))]
 
-            async def pick_live(candidates, want=5):
+            async def pick_live(candidates, want=want):
                 async with httpx.AsyncClient() as client:
                     alive = []
                     batch_size = min(len(candidates), want * 2)
