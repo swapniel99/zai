@@ -76,7 +76,7 @@ Once you have all necessary context, deliver the final itinerary as **Markdown**
 
 ## 4. Final Output Format
 
-**Timeframe-only queries (no destination provided):** Present **3 destination options** before the full itinerary. Always mix: at least 1 domestic option (within the traveler's home country) and at least 1 international option. If origin country is unknown, include at least 1 option in South/Southeast Asia and at least 1 elsewhere.
+**Timeframe-only queries (no destination provided):** Present **3 destination options** before the full itinerary. Always mix: at least 1 domestic option (within the traveler's home country) and at least 2 international options across different regions.
 Use this structure first:
 
 ```markdown
