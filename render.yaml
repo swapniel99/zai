@@ -29,6 +29,6 @@ services:
       - key: MCP_SERVER_URL
         value: https://zai-mcp.onrender.com/mcp      # update after mcp deploys
       - key: LLM_PROVIDER
-        value: cerebras
+        value: gemini
       - key: GATEWAY_API_KEY
         sync: false   # fill in Render dashboard
