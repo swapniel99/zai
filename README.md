@@ -1,1 +1,1 @@
-# ZAI - Solo Travel Companion 🦜
+# ZAI: Zen Adventure Intelligence 🦜

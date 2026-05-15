@@ -1,5 +1,5 @@
 """
-main.py — Solo Explorer Agent API.
+main.py — ZAI (Zen Adventure Intelligence) API.
 
 POST /chat/stream  { "message": "...", "session_id": "..." }  → SSE
 POST /chat         { "message": "...", "session_id": "..." }  → JSON (fallback)
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     _sessions.clear()
 
 
-app = FastAPI(title="Solo Explorer Agent", lifespan=lifespan)
+app = FastAPI(title="ZAI: Zen Adventure Intelligence", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 

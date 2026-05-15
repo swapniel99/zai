@@ -1,5 +1,5 @@
 """
-travel_agent.py — Solo Explorer Agent core loop.
+travel_agent.py — ZAI (Zen Adventure Intelligence) core loop.
 
 Connects to mcp_server.py via stdio, runs a native tool-calling loop
 using llm_gatewayV2, and returns a Markdown itinerary string.
@@ -317,7 +317,7 @@ async def run_stream(user_message: str, history: list[dict]) -> AsyncIterator[di
 
 async def _cli() -> None:
     print(f"Connecting to MCP server at {MCP_SERVER_URL}")
-    print("Solo Explorer Agent — type 'quit' to exit\n")
+    print("ZAI (Zen Adventure Intelligence) — type 'quit' to exit\n")
     history: list[dict] = []
     while True:
         user_input = input("You: ").strip()
