@@ -95,7 +95,9 @@ When you have completed your reasoning and tool loops and no longer need to call
 ```markdown
 # Solo Travel Plan: [Location/Theme]
 
-![Hero Image Description](Image URL)
+![Image 1](url1)
+![Image 2](url2)
+![Image 3](url3)
 
 ## The Main Event
 - **Event:** [Name of Festival/Event]
@@ -105,7 +107,9 @@ When you have completed your reasoning and tool loops and no longer need to call
 *(Embed a relevant video or additional image of the event here if available)*
 [Video/Image Embed URL]
 
-**Media rendering:** Use tool output verbatim — bare URLs auto-embed; `[Watch on YouTube: title](url)` links are for non-embeddable videos. Do not reformat or add extra URL text.
+**Media rendering:**
+- Images: output a few image URLs as consecutive `![desc](url)` lines with NO text between them — the UI groups them into a slideshow carousel automatically. Never use a list (`-`) for images.
+- Videos: bare YouTube URLs auto-embed as players; `[Watch on YouTube: title](url)` for non-embeddable. Do not add extra URL text.
 
 ## First-Hand Context (From Reddit)
 - **Insider Tip:** [Synthesized tip from Reddit search]

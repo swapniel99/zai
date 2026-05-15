@@ -1,6 +1,20 @@
 import httpx
 from ddgs import DDGS
 
+_WATERMARKED_DOMAINS = {
+    "alamy.com", "gettyimages.com", "istockphoto.com", "shutterstock.com",
+    "dreamstime.com", "123rf.com", "depositphotos.com", "stock.adobe.com",
+    "bigstockphoto.com", "canstockphoto.com",
+}
+
+def _is_watermarked(url: str) -> bool:
+    try:
+        from urllib.parse import urlparse
+        host = urlparse(url).netloc.lower().lstrip("www.")
+        return any(host == d or host.endswith("." + d) for d in _WATERMARKED_DOMAINS)
+    except Exception:
+        return False
+
 
 def _is_youtube_embeddable(url: str) -> bool:
     """Return True if the YouTube video allows embedding."""
@@ -38,11 +52,14 @@ def search_media(query: str, media_type: str = "image") -> str:
             return "\n".join(lines)
 
         else:
-            results = DDGS().images(query, max_results=5)
+            results = DDGS().images(query, max_results=10)
             if not results:
                 return f"No images found for: {query}"
+            clean = [r for r in results if not _is_watermarked(r.get("image", ""))][:5]
+            if not clean:
+                return f"No non-watermarked images found for: {query}"
             lines = [f"Images for: {query}\n"]
-            for i, r in enumerate(results, 1):
+            for i, r in enumerate(clean, 1):
                 lines.append(f"{i}. {r.get('image', '')}")
             return "\n".join(lines)
 
