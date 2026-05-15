@@ -95,7 +95,7 @@ When you have completed your reasoning and tool loops and no longer need to call
 
 **Media rendering:**
 - Images: output **all** image URLs returned by `search_media_tool` as consecutive `![desc](url)` lines with NO text between them — the UI groups them into a slideshow carousel automatically. Never use a list (`-`) for images. Never output fewer than 3 images.
-- Videos: bare YouTube URLs auto-embed as players; `[Watch on YouTube: title](url)` for non-embeddable. Do not add extra URL text.
+- Videos: `search_media_tool` returns multiple results with titles. Read each title and pick the **single most relevant** video to the destination — ignore results about other countries or unrelated places. Output only that one URL. Bare YouTube URLs auto-embed; `[Watch on YouTube: title](url)` for non-embeddable.
 
 ```markdown
 # Solo Travel Plan: [Location/Theme]

@@ -45,18 +45,18 @@ def search_media(query: str, media_type: str = "image") -> str:
     """
     try:
         if media_type == "video":
-            results = DDGS().videos(query, max_results=5)
+            results = DDGS().videos(query, max_results=8)
             if not results:
                 return f"No videos found for: {query}"
-            lines = [f"Videos for: {query}\n"]
+            lines = [f"Videos for: {query} — pick the most destination-relevant result:\n"]
             for i, r in enumerate(results, 1):
                 url = r.get("content", r.get("embed_url", ""))
                 title = r.get("title", "No title")
                 is_yt = "youtube.com" in url or "youtu.be" in url
                 if is_yt and not _is_youtube_embeddable(url):
-                    lines.append(f"{i}. [Watch on YouTube: {title}]({url})")
+                    lines.append(f"{i}. Title: {title} | [Watch on YouTube: {title}]({url})")
                 else:
-                    lines.append(f"{i}. {url}")
+                    lines.append(f"{i}. Title: {title} | URL: {url}")
             return "\n".join(lines)
 
         else:
