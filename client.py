@@ -4,12 +4,14 @@ import os, json, httpx
 from typing import Any, Optional
 
 DEFAULT_URL = os.getenv("LLM_GATEWAY_V2_URL", "http://localhost:8100")
+GATEWAY_TOKEN = os.getenv("GATEWAY_API_KEY")
 
 
 class LLM:
     def __init__(self, base_url: str = DEFAULT_URL, timeout: float = 600):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self._headers = {"Authorization": f"Bearer {GATEWAY_TOKEN}"} if GATEWAY_TOKEN else {}
 
     def chat(self, prompt: str = None, *,
              messages: Optional[list] = None,
@@ -30,7 +32,7 @@ class LLM:
             "response_format": response_format,
         }
         body = {k: v for k, v in body.items() if v is not None}
-        r = httpx.post(f"{self.base_url}/v1/chat", json=body, timeout=self.timeout)
+        r = httpx.post(f"{self.base_url}/v1/chat", json=body, headers=self._headers, timeout=self.timeout)
         r.raise_for_status()
         return r.json()
 
@@ -48,7 +50,7 @@ class LLM:
             "response_format": response_format,
         }
         body = {k: v for k, v in body.items() if v is not None}
-        with httpx.stream("POST", f"{self.base_url}/v1/chat", json=body, timeout=self.timeout) as r:
+        with httpx.stream("POST", f"{self.base_url}/v1/chat", json=body, headers=self._headers, timeout=self.timeout) as r:
             r.raise_for_status()
             for line in r.iter_lines():
                 if not line or not line.startswith("data: "):
