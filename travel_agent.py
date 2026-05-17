@@ -266,13 +266,22 @@ async def _run_native_loop(
 
 # ── Verifier ──────────────────────────────────────────────────────────────────
 
-def _verify_itinerary(trace: AgentTrace, user_message: str, response: str) -> TravelVerdict:
+def _verify_itinerary(trace: AgentTrace, user_message: str, response: str, history: list[dict] | None = None) -> TravelVerdict:
     tool_names = [e.tool_name for e in trace.events if e.kind == "tool_call"]
     schema = TravelVerdict.model_json_schema()
+    prior = ""
+    if history:
+        last = [m for m in history[-6:] if m.get("role") in ("user", "assistant")]
+        if last:
+            prior = "Recent conversation history (for context):\n" + "\n".join(
+                f"{m['role'].upper()}: {str(m.get('content',''))[:400]}" for m in last
+            ) + "\n\n"
     llm = LLM()
     reply = llm.chat(
         prompt=(
-            f"You are a travel itinerary verifier. The user asked:\n{user_message}\n\n"
+            f"You are a travel itinerary verifier.\n\n"
+            f"{prior}"
+            f"Latest user message:\n{user_message}\n\n"
             f"The agent called these tools: {tool_names}\n\n"
             f"The agent's final response:\n{response}\n\n"
             "First determine the response type:\n"
@@ -338,7 +347,7 @@ async def _run_core(
 
     if queue:
         await queue.put({"type": "thinking", "label": "Verifying itinerary..."})
-    verdict = _verify_itinerary(trace, user_message, response)
+    verdict = _verify_itinerary(trace, user_message, response, history)
     trace.add(
         kind="verdict",
         turn=0,
