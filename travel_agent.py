@@ -14,6 +14,7 @@ SSE event schema (run_stream):
 
 import asyncio
 import json
+import logging
 import os
 import sys
 import time
@@ -22,6 +23,7 @@ from pathlib import Path
 from typing import Any, AsyncIterator, Literal
 
 _LOG_DIR = Path(__file__).parent / "logs"
+_log = logging.getLogger("zai.agent")
 
 from dotenv import load_dotenv
 
@@ -74,7 +76,7 @@ class ToolDef(BaseModel):
 
 
 class TraceEvent(BaseModel):
-    kind: Literal["llm_call", "tool_call"]
+    kind: Literal["llm_call", "tool_call", "verdict"]
     turn: int
     provider: str | None = None
     model: str | None = None
@@ -88,6 +90,13 @@ class TraceEvent(BaseModel):
     tool_result: str | None = None
     text: str | None = None
     reasoning_text: str | None = None
+    verdict_data: dict | None = None
+
+
+class TravelVerdict(BaseModel):
+    passed: bool
+    issues: list[str]
+    refined_response: str | None = None
 
 
 class AgentTrace(BaseModel):
@@ -158,6 +167,7 @@ async def _dispatch_tool_calls(
             await queue.put({"type": "tool_start", "tool": tc["name"], "label": label})
         result = await session.call_tool(tc["name"], tc.get("arguments") or {})
         text = result.content[0].text if result.content else ""
+        _log.info("tool %-22s → %d chars", tc["name"], len(text))
         if queue:
             await queue.put({"type": "tool_end", "tool": tc["name"], "label": label})
         return {
@@ -197,9 +207,22 @@ async def _run_native_loop(
             temperature=0.3,
             max_tokens=8192,
             provider=LLM_PROVIDER,
-            reasoning="medium",
+            reasoning="off",
         )
 
+        _log.info(
+            "turn=%d provider=%s model=%s latency=%dms "
+            "in=%d out=%d cache_read=%d cache_create=%d tools=%d",
+            turn,
+            reply.get("provider", "?"),
+            reply.get("model", "?"),
+            reply.get("latency_ms", 0),
+            reply.get("input_tokens", 0),
+            reply.get("output_tokens", 0),
+            reply.get("cache_read_input_tokens", 0),
+            reply.get("cache_creation_input_tokens", 0),
+            len(reply.get("tool_calls") or []),
+        )
         trace.add(
             kind="llm_call",
             turn=turn,
@@ -241,6 +264,57 @@ async def _run_native_loop(
     raise RuntimeError(f"agent exceeded MAX_TURNS={MAX_TURNS}")
 
 
+# ── Verifier ──────────────────────────────────────────────────────────────────
+
+def _verify_itinerary(trace: AgentTrace, user_message: str, response: str) -> TravelVerdict:
+    tool_names = [e.tool_name for e in trace.events if e.kind == "tool_call"]
+    schema = TravelVerdict.model_json_schema()
+    llm = LLM()
+    reply = llm.chat(
+        prompt=(
+            f"You are a travel itinerary verifier. The user asked:\n{user_message}\n\n"
+            f"The agent called these tools: {tool_names}\n\n"
+            f"The agent's final response:\n{response}\n\n"
+            "First determine the response type:\n"
+            "- CLARIFICATION: agent is asking the user for missing info (departure city, number of days, budget tier, etc.)\n"
+            "- OPTIONS: agent is presenting 2-3 destination choices (e.g. '## Top Picks for [Timeframe]') and waiting for user to pick one before building a full itinerary\n"
+            "- ITINERARY: agent produced a full structured travel plan with a '# Solo Travel Plan:' heading\n\n"
+            "If CLARIFICATION or OPTIONS: set passed=true, issues=[], refined_response=null. Do not check further.\n\n"
+            "If ITINERARY, check ALL of the following. If any fail, set passed=false and list each issue:\n"
+            "1. Response is Markdown (no raw [Step N:] reasoning blocks, no JSON).\n"
+            "2. Response addresses the user's actual destination/timeframe/request.\n"
+            "3. Response has day-by-day or structured itinerary content (not just generic advice).\n"
+            "4. Response does not offer to make bookings or payments.\n"
+            "5. If dates were mentioned by user, response includes specific dates or date ranges.\n"
+            "If passed=false, write a corrected refined_response fixing only the failed checks. "
+            "If passed=true, set refined_response=null."
+        ),
+        system="Return a single TravelVerdict object. Be strict but fair.",
+        cache_system=True,
+        response_format={
+            "type": "json_schema",
+            "schema": schema,
+            "name": "TravelVerdict",
+            "strict": True,
+        },
+        reasoning="medium",
+        temperature=0,
+        max_tokens=8192,
+        provider=LLM_PROVIDER,
+    )
+
+    if reply.get("parsed"):
+        verdict = TravelVerdict.model_validate(reply["parsed"])
+        if verdict.passed:
+            _log.info("verifier passed")
+        else:
+            _log.warning("verifier failed issues=%s refined=%s", verdict.issues, bool(verdict.refined_response))
+        return verdict
+    # Structured output not honoured — assume passed to avoid blocking the user.
+    _log.warning("verifier structured output not honoured; assuming passed")
+    return TravelVerdict(passed=True, issues=[], refined_response=None)
+
+
 # ── Core runner (shared by both entrypoints) ──────────────────────────────────
 
 async def _run_core(
@@ -251,14 +325,40 @@ async def _run_core(
     system = _load_system_prompt()
     messages = history + [{"role": "user", "content": user_message}]
 
+    _log.info("run_core query=%r", user_message[:120])
     async with streamable_http_client(MCP_SERVER_URL) as (read, write, _):
         async with ClientSession(read, write) as session:
             await session.initialize()
             mcp_tools = (await session.list_tools()).tools
             tools = [_mcp_tool_to_v2(t) for t in mcp_tools]
+            _log.info("mcp connected tools=%s", [t.name for t in mcp_tools])
             trace = AgentTrace(goal=user_message)
             response = await _run_native_loop(session, tools, messages, system, trace, queue)
 
+    if queue:
+        await queue.put({"type": "thinking", "label": "Verifying itinerary..."})
+    verdict = _verify_itinerary(trace, user_message, response)
+    trace.add(
+        kind="verdict",
+        turn=0,
+        verdict_data=verdict.model_dump(exclude={"refined_response"}),
+    )
+    if queue:
+        await queue.put({
+            "type": "verifier",
+            "passed": verdict.passed,
+            "issues": verdict.issues,
+        })
+    if not verdict.passed and verdict.refined_response:
+        response = verdict.refined_response
+
+    summary = trace.summary()
+    _log.info(
+        "done turns=%d tool_calls=%d in=%d out=%d cache_reads=%d wall=%.1fs response_chars=%d",
+        summary["llm_turns"], summary["tool_calls"],
+        summary["total_in_tokens"], summary["total_out_tokens"],
+        summary["cache_reads"], summary["wall_clock_s"], len(response),
+    )
     messages.append({"role": "assistant", "content": response})
     _write_trace(trace)
     return response, messages
@@ -341,4 +441,5 @@ async def _cli() -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     asyncio.run(_cli())

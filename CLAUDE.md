@@ -30,12 +30,16 @@ uv run python travel_agent.py
 Create `.env` at repo root. Required/optional vars:
 ```
 LLM_GATEWAY_V2_URL=http://localhost:8100   # LLM gateway endpoint
-LLM_PROVIDER=cerebras                      # or groq, or omit for auto-select
+LLM_PROVIDER=cerebras                      # or groq, gemini, or omit for auto-select
+GATEWAY_API_KEY=                           # required by gateway for authenticated providers
 MCP_SERVER_URL=http://127.0.0.1:8000/mcp  # optional override
 MCP_PORT=8000                              # optional override
 REDDIT_CLIENT_ID=                          # optional; enables full post content
 REDDIT_CLIENT_SECRET=                      # optional; enables full post content
 ```
+
+### Render deployment
+Two services defined in `render.yaml`: `zai-mcp` (MCP server) and `zai-app` (API + UI). Production uses `LLM_PROVIDER=gemini` and `GATEWAY_API_KEY` set via Render dashboard. Requires Python 3.14.
 
 Agent traces (full LLM turn logs) written to `logs/trace_<timestamp>.json` automatically.
 
@@ -46,8 +50,8 @@ Agent traces (full LLM turn logs) written to `logs/trace_<timestamp>.json` autom
 ### Current state (complete)
 - `mcp_server.py` — `FastMCP` server registering 6 tools. Tool *registration only*; all logic lives in `tools/`.
 - `tools/` — 6 custom Python modules, each mapping to one PRD capability (web search, page reading, Reddit, media, date math, climate).
-- `tests/test_tools.py` — 21 pytest tests with `asyncio_mode=auto`; tests primary paths, fallback chains, and MCP registration.
-- `travel_agent.py` — core agentic loop. Connects to `mcp_server.py` via HTTP (`streamable_http_client`), fetches tool schemas, runs native tool-calling loop (LLM → tools → LLM) via `llm_gatewayV2`. Exposes `run()` (blocking) and `run_stream()` (async generator, SSE events). `MAX_TURNS = 12`.
+- `tests/test_tools.py` — 18 pytest tests with `asyncio_mode=auto`; tests primary paths, fallback chains, and MCP registration.
+- `travel_agent.py` — core agentic loop. Connects to `mcp_server.py` via HTTP (`streamable_http_client`), fetches tool schemas, runs native tool-calling loop (LLM → tools → LLM) via `llm_gatewayV2`. Exposes `run()` (blocking) and `run_stream()` (async generator, SSE events). `MAX_TURNS = 20`.
 - `main.py` — FastAPI on port 8080. `POST /chat/stream` (SSE), `POST /chat` (JSON fallback), `GET /health`, `GET /` (serves UI). In-memory sessions keyed by `session_id`.
 - `static/index.html` — single-file chat UI. Consumes `/chat/stream` SSE; renders Markdown (marked.js) with inline images and YouTube embeds; shows thinking/tool-progress pills in a scrollable status bar.
 
@@ -60,7 +64,8 @@ Events are `data: <json>\n\n` lines. Frontend must handle all types:
 | `thinking`   | `label`                         | Before each LLM call ("Planning your trip...", "Crafting your itinerary...") |
 | `tool_start` | `tool`, `label`                 | When a tool call begins (parallel-aware)  |
 | `tool_end`   | `tool`, `label`                 | When a tool call completes                |
-| `response`   | `text`                          | Final Markdown itinerary                  |
+| `verifier`   | `passed`, `issues`              | After executor finishes; before `response`; `passed=false` means response was auto-corrected |
+| `response`   | `text`                          | Final Markdown itinerary (may be verifier-refined) |
 | `error`      | `message`                       | Agent-level exception                     |
 | `done`       | —                               | Stream complete                           |
 
@@ -87,6 +92,9 @@ Parallel tool calls fire all `tool_start` events before any `tool_end` (via `asy
 - `python-dotenv` — loaded at startup in both `main.py` and `travel_agent.py`
 - Open-Meteo APIs — free, no API key required
 - Reddit public JSON API — no credentials required (`REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` in `.env` reserved for future OAuth upgrade)
+
+### Verifier
+After `_run_native_loop` finishes, `_verify_itinerary()` makes a separate LLM call (`reasoning="medium"`, `response_format=json_schema`) that inspects the executor's response against the user's original request. Returns `TravelVerdict(passed, issues, refined_response)`. If `passed=False` and `refined_response` is set, the refined text replaces the executor's response before it reaches the user. Verdict is logged in `AgentTrace` as a `"verdict"` event. Verifier never calls tools — reads trace only.
 
 ### Design constraints
 - LLM must call `calendar_math_tool` for all date expressions — never compute dates itself
